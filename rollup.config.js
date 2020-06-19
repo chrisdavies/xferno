@@ -2,6 +2,7 @@ import childProcess from 'child_process';
 import resolve from '@rollup/plugin-node-resolve';
 import commonjs from '@rollup/plugin-commonjs';
 import livereload from 'rollup-plugin-livereload';
+import { terser } from 'rollup-plugin-terser';
 import replace from '@rollup/plugin-replace';
 import babel from '@rollup/plugin-babel';
 
@@ -53,6 +54,10 @@ export default {
     // Watch the `public` directory and refresh the
     // browser on changes when not in production
     !production && livereload('public'),
+
+    // If we're building for production (npm run build
+    // instead of npm run dev), minify
+    production && terser(),
   ],
   watch: {
     clearScreen: false,
