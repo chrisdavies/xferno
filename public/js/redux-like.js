@@ -1,6 +1,4 @@
-import { Component } from 'inferno';
-
-export function createStore(initialState, reducer) {
+export function createStore(reducer, initialState) {
   const subscriptions = [];
   let state = initialState;
 
@@ -20,19 +18,4 @@ export function createStore(initialState, reducer) {
       subscriptions.forEach((f) => f());
     },
   };
-}
-
-export class StoreProvider extends Component {
-  constructor(props, ctx) {
-    super(props, ctx);
-    this.childContext = { store: props.store };
-  }
-
-  getChildContext() {
-    return this.childContext;
-  }
-
-  render() {
-    return this.props.children;
-  }
 }

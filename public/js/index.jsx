@@ -1,7 +1,7 @@
 import { render } from 'inferno';
-import { xferno, useState, useEffect, useMemo } from '../../src/xferno';
+import { xferno, useState, useEffect, useMemo, ReduxStoreProvider } from '../../src';
 import { ContextContest } from './context-contest';
-import { createStore, StoreProvider } from './redux-like';
+import { createStore } from './redux-like';
 
 const initialState = {
   name: 'Context',
@@ -22,7 +22,7 @@ const reducer = (state, action, ...args) => {
   return state || initialState;
 };
 
-const store = createStore(initialState, reducer);
+const store = createStore(reducer, initialState);
 
 function useTimeout(fn, ms) {
   const [state, setState] = useState(fn());
@@ -86,7 +86,7 @@ const MultiState = xferno(() => {
 
 function Main() {
   return (
-    <StoreProvider store={store}>
+    <ReduxStoreProvider store={store}>
       <main>
         <h1>Xferno demo</h1>
         <Counter />
@@ -94,7 +94,7 @@ function Main() {
         <HidableClock />
         <ContextContest />
       </main>
-    </StoreProvider>
+    </ReduxStoreProvider>
   );
 }
 

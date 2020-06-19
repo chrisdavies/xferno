@@ -1,4 +1,3 @@
-import { Component } from 'inferno';
 import {
   xferno,
   useState,
@@ -9,17 +8,8 @@ import {
   useSelector,
   useRenderCache,
 } from './xferno';
+import { ReduxStoreProvider } from './redux-store-provider';
 import * as util from 'inferno-test-utils';
-
-class TestProvider extends Component {
-  getChildContext() {
-    return { store: this.props.store };
-  }
-
-  render() {
-    return this.props.children;
-  }
-}
 
 function emit(eventName, node, eventArgs) {
   node.$EV[eventName](eventArgs);
@@ -178,9 +168,9 @@ test('useDispatch dispatches to the contextual store', () => {
   });
 
   const Test = () => (
-    <TestProvider store={{ dispatch: mockDispatch }}>
+    <ReduxStoreProvider store={{ dispatch: mockDispatch }}>
       <Hello />
-    </TestProvider>
+    </ReduxStoreProvider>
   );
 
   const rendered = util.renderIntoContainer(<Test />);
@@ -208,9 +198,9 @@ test('useSelector retrieves the value from state, and redraws when the value cha
   });
 
   const Test = () => (
-    <TestProvider store={store}>
+    <ReduxStoreProvider store={store}>
       <Hello />
-    </TestProvider>
+    </ReduxStoreProvider>
   );
 
   const rendered = util.renderIntoContainer(<Test />);
@@ -250,9 +240,9 @@ test('components unsubscribe from stores when they are disposed', () => {
   });
 
   const Test = () => (
-    <TestProvider store={store}>
+    <ReduxStoreProvider store={store}>
       <ShowHello />
-    </TestProvider>
+    </ReduxStoreProvider>
   );
 
   const rendered = util.renderIntoContainer(<Test />);
@@ -313,9 +303,9 @@ test('renderCache and useSelector work together', () => {
   });
 
   const Test = () => (
-    <TestProvider store={store}>
+    <ReduxStoreProvider store={store}>
       <Name />
-    </TestProvider>
+    </ReduxStoreProvider>
   );
 
   const rendered = util.renderIntoContainer(<Test />);

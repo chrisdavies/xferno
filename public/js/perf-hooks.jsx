@@ -7,8 +7,9 @@ import {
   useSelector,
   useDispatch,
   useRenderCache,
-} from '../../src/xferno';
-import { createStore, StoreProvider } from './redux-like';
+  ReduxStoreProvider,
+} from '../../src';
+import { createStore } from './redux-like';
 
 const initialState = {
   name: 'Context',
@@ -29,7 +30,7 @@ const reducer = (state, action, ...args) => {
   return state || initialState;
 };
 
-const store = createStore(initialState, reducer);
+const store = createStore(reducer, initialState);
 
 function useInterval(fn, ms) {
   useEffect(() => {
@@ -135,13 +136,13 @@ const Footer = xferno(() => {
 
 function Main() {
   return (
-    <StoreProvider store={store}>
+    <ReduxStoreProvider store={store}>
       <main>
         <h1>Xferno demo</h1>
         <Name />
         <Footer />
       </main>
-    </StoreProvider>
+    </ReduxStoreProvider>
   );
 }
 

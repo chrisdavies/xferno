@@ -26,7 +26,7 @@ function runNpm(cmdName) {
 }
 
 export default {
-  input: production ? 'src/xferno.jsx' : 'public/js/index.jsx',
+  input: production ? 'src/index.jsx' : 'public/js/index.jsx',
   output: {
     name: 'xferno',
     sourcemap: true,

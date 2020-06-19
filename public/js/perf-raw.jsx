@@ -21,7 +21,7 @@ const reducer = (state, action, ...args) => {
   return state || initialState;
 };
 
-const store = createStore(initialState, reducer);
+const store = createStore(reducer, initialState);
 
 function fpsTracker() {
   let time = Date.now();
