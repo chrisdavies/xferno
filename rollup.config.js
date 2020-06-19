@@ -6,7 +6,6 @@ import { terser } from 'rollup-plugin-terser';
 import replace from '@rollup/plugin-replace';
 import babel from '@rollup/plugin-babel';
 import analyze from 'rollup-plugin-analyzer';
-import peerDepsExternal from 'rollup-plugin-peer-deps-external';
 
 const production = !process.env.ROLLUP_WATCH;
 
@@ -35,9 +34,8 @@ export default {
     format: production ? 'umd' : 'iife',
     file: production ? 'dist/xferno.js' : 'public/build/bundle.js',
   },
+  external: production ? ['inferno'] : [],
   plugins: [
-    peerDepsExternal(),
-
     resolve({
       browser: true,
       extensions: ['.js', '.jsx'],
