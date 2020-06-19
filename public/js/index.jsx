@@ -72,12 +72,25 @@ const HidableClock = xferno(() => {
   );
 });
 
+const MultiState = xferno(() => {
+  const [a, setA] = useState(0);
+  const [b, setB] = useState(2);
+
+  return (
+    <div>
+      <button onClick={() => setA(a + 1)}>+ {a}</button>
+      <button onClick={() => setB(b + 1)}>+ {b}</button>
+    </div>
+  );
+});
+
 function Main() {
   return (
     <StoreProvider store={store}>
       <main>
         <h1>Xferno demo</h1>
         <Counter />
+        <MultiState />
         <HidableClock />
         <ContextContest />
       </main>

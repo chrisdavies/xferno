@@ -40,22 +40,32 @@ test('renders using state', async () => {
   expect(h1.innerHTML).toMatchInlineSnapshot(`"Hi George 42"`);
 });
 
-test('updates state', async () => {
+test('multiple useStates are allowed', async () => {
   const Hello = xferno(({ name }) => {
     const [count, setState] = useState(42);
+    const [lastName, setLastName] = useState('Cat');
+
     return (
-      <h1 onClick={() => setState((x) => x + 1)}>
-        Hi {name} {count}
-      </h1>
+      <>
+        <h1 onClick={() => setState((x) => x + 1)}>
+          Hi {name} {lastName} {count}
+        </h1>
+        <button onClick={() => setLastName(lastName + 't')}>add a t</button>
+      </>
     );
   });
 
   const rendered = util.renderIntoContainer(<Hello name="George" />);
   const [h1] = util.scryRenderedDOMElementsWithTag(rendered, 'h1');
+  const [btn] = util.scryRenderedDOMElementsWithTag(rendered, 'button');
 
   emit('onClick', h1);
 
-  expect(h1.innerHTML).toMatchInlineSnapshot(`"Hi George 43"`);
+  expect(h1.innerHTML).toMatchInlineSnapshot(`"Hi George Cat 43"`);
+
+  emit('onClick', btn);
+
+  expect(h1.innerHTML).toMatchInlineSnapshot(`"Hi George Catt 43"`);
 });
 
 test('effects only run once', () => {
@@ -210,6 +220,51 @@ test('useSelector retrieves the value from state, and redraws when the value cha
   state = { name: 'George Orwell' };
   subscriptions.forEach((f) => f());
   expect(h1.innerHTML).toMatchInlineSnapshot(`"George Orwell"`);
+});
+
+test('components unsubscribe from stores when they are disposed', () => {
+  let state = { name: 'George' };
+  const subscriptions = [];
+  const unsubscribe = jest.fn();
+  const store = {
+    getState: () => state,
+    subscribe: (fn) => {
+      subscriptions.push(fn);
+      return unsubscribe;
+    },
+  };
+
+  const Hello = xferno(() => {
+    const name = useSelector((s) => s.name);
+    return <h1>{name}</h1>;
+  });
+
+  const ShowHello = xferno(() => {
+    const [show, setShow] = useState(true);
+    return (
+      <div>
+        {show && <Hello />}
+        <button onClick={() => setShow(false)}>Hide</button>
+      </div>
+    );
+  });
+
+  const Test = () => (
+    <TestProvider store={store}>
+      <ShowHello />
+    </TestProvider>
+  );
+
+  const rendered = util.renderIntoContainer(<Test />);
+  const [h1] = util.scryRenderedDOMElementsWithTag(rendered, 'h1');
+  const [btn] = util.scryRenderedDOMElementsWithTag(rendered, 'button');
+
+  expect(h1.innerHTML).toMatchInlineSnapshot(`"George"`);
+  expect(unsubscribe).not.toHaveBeenCalled();
+
+  emit('onClick', btn);
+
+  expect(unsubscribe).toHaveBeenCalled();
 });
 
 test('renderCache and useSelector work together', () => {
