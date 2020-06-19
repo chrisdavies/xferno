@@ -27,10 +27,10 @@ function runNpm(cmdName) {
 export default {
   input: production ? 'src/xferno.jsx' : 'public/js/index.jsx',
   output: {
-    name: 'quikpik',
+    name: 'xferno',
     sourcemap: true,
     format: production ? 'umd' : 'iife',
-    file: production ? 'dist/quikpik.js' : 'public/build/bundle.js',
+    file: production ? 'dist/xferno.js' : 'public/build/bundle.js',
   },
   plugins: [
     resolve({
