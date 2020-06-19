@@ -24,6 +24,10 @@ class HookComponent extends Component {
     super(props, context);
     this.id = 0;
     this.hookInstances = [];
+    this.state = {};
+
+    // Used if useSelector is ever invoked.
+    this.unsubscribeFromStore = undefined;
 
     // If useRenderCache is called, this will be set to true, and we
     // will then only re-render if hooks change.
@@ -35,7 +39,7 @@ class HookComponent extends Component {
 
     // If isPure, this will be the result of our render, if
     // shouldComponentUpdate is true.
-    this.renderResult;
+    this.renderResult = undefined;
   }
 
   componentWillUnmount() {
@@ -66,6 +70,24 @@ class HookComponent extends Component {
       this.renderCache = () => !this.shouldUpdate;
     }
     return this.renderCache;
+  }
+
+  getStoreState() {
+    if (!this.unsubscribeFromStore) {
+      this.state.storeState = this.context.store.getState();
+      this.unsubscribeFromStore = this.context.store.subscribe(() => {
+        this.setState((s) => {
+          s.storeState = this.context.store.getState();
+          return s;
+        });
+      });
+    }
+
+    return this.state.storeState;
+  }
+
+  getDispatch() {
+    return this.context.store.dispatch;
   }
 
   getHook(watchList) {
@@ -102,7 +124,7 @@ class HookComponent extends Component {
       return true;
     }
 
-    this.shouldUpdate = !eq(this.props, nextProps) || !eq(this.state, nextState);
+    this.shouldUpdate = !eq(this.props, nextProps) || !eq(this.state.value, nextState.value);
     this.context = context;
     this.state = nextState;
     const renderResult = this.renderWith(nextProps, this.context);
@@ -144,9 +166,10 @@ export function useState(fn) {
 
     const component = currentTracker;
     hook.$setState = (setter) => {
-      return component.setState((s) => ({
-        value: typeof setter === 'function' ? setter(s.value) : setter,
-      }));
+      return component.setState((s) => {
+        s.value = typeof setter === 'function' ? setter(s.value) : setter;
+        return s;
+      });
     };
   }
 
@@ -186,12 +209,12 @@ export function useDisposable(fn, watchList) {
 
 export function useSelector(fn) {
   const hook = currentTracker.getHook();
-  hook.value = fn(currentTracker.context.state);
+  hook.value = fn(currentTracker.getStoreState());
   return hook.value;
 }
 
 export function useDispatch() {
-  return currentTracker.context.dispatch;
+  return currentTracker.getDispatch();
 }
 
 export function useRenderCache() {

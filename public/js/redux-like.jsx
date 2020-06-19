@@ -6,7 +6,15 @@ export function createStore(initialState, reducer) {
 
   return {
     getState: () => state,
-    subscribe: (fn) => subscriptions.push(fn),
+    subscribe: (fn) => {
+      subscriptions.push(fn);
+      return () => {
+        const i = subscriptions.indexOf(fn);
+        if (i >= 0) {
+          subscriptions.splice(i, 1);
+        }
+      };
+    },
     dispatch: (...args) => {
       state = reducer(state, ...args);
       subscriptions.forEach((f) => f());
@@ -17,16 +25,11 @@ export function createStore(initialState, reducer) {
 export class StoreProvider extends Component {
   constructor(props, ctx) {
     super(props, ctx);
-    this.state = props.store.getState();
-    this.dispatch = props.store.dispatch;
-    props.store.subscribe(() => this.setState(store.getState()));
+    this.childContext = { store: props.store };
   }
 
   getChildContext() {
-    return {
-      state: this.state,
-      dispatch: this.dispatch,
-    };
+    return this.childContext;
   }
 
   render() {
