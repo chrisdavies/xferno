@@ -1,7 +1,7 @@
 {
   "name": "xferno",
   "version": "0.0.1",
-  "description": "Hook-like components in inferno",
+  "description": "React hook-like capabilities for inferno.",
   "author": "Christopher Davies <github@christophilus.com>",
   "repository": {
     "url": "https://github.com/chrisdavies/xferno"
