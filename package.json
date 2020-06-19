@@ -1,6 +1,6 @@
 {
   "name": "xferno",
-  "version": "0.1.1",
+  "version": "0.0.1",
   "description": "Hook-like components in inferno",
   "author": "Christopher Davies <github@christophilus.com>",
   "license": "MIT",
