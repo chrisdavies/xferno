@@ -20,7 +20,7 @@ const reducer = (state, action, ...args) => {
   }
   console.warn('Unknown action,', action);
   return state || initialState;
-}
+};
 
 const store = createStore(initialState, reducer);
 
@@ -49,9 +49,7 @@ const Counter = xferno(() => {
     <div>
       <h1>Count: {count}</h1>
       <p>Every fifth numer: {everyFifth}</p>
-      <button onClick={() => setCount(count + 1)}>
-        +
-      </button>
+      <button onClick={() => setCount(count + 1)}>+</button>
     </div>
   );
 });
@@ -59,9 +57,7 @@ const Counter = xferno(() => {
 const Clock = xferno(() => {
   const time = useTimeout(() => new Date().toLocaleTimeString(), 1000);
 
-  return (
-    <h1>It is now {time}</h1>
-  );
+  return <h1>It is now {time}</h1>;
 });
 
 const HidableClock = xferno(() => {
@@ -73,7 +69,7 @@ const HidableClock = xferno(() => {
       <button onClick={toggleClock}>{show ? 'Hide' : 'Show'} clock</button>
       {show && <Clock />}
     </div>
-  )
+  );
 });
 
 function Main() {

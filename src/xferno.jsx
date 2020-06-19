@@ -1,4 +1,4 @@
-import { Component } from "inferno";
+import { Component } from 'inferno';
 
 let trackerStack = [];
 let currentTracker;
@@ -12,7 +12,7 @@ function eq(a, b) {
     return a.length === b.length && a.every((x, i) => x === b[i]);
   }
 
-  if (typeof a === "object" && typeof b === "object") {
+  if (typeof a === 'object' && typeof b === 'object') {
     return eq(Object.values(a), Object.values(b));
   }
 
@@ -84,8 +84,7 @@ class HookComponent extends Component {
         },
         set value(value) {
           if (currentTracker.isPure) {
-            currentTracker.shouldUpdate =
-              currentTracker.shouldUpdate || !eq(value, hook.$value);
+            currentTracker.shouldUpdate = currentTracker.shouldUpdate || !eq(value, hook.$value);
           }
           hook.$value = value;
         },
@@ -103,8 +102,7 @@ class HookComponent extends Component {
       return true;
     }
 
-    this.shouldUpdate =
-      !eq(this.props, nextProps) || !eq(this.state, nextState);
+    this.shouldUpdate = !eq(this.props, nextProps) || !eq(this.state, nextState);
     this.context = context;
     this.state = nextState;
     const renderResult = this.renderWith(nextProps, this.context);
@@ -141,13 +139,13 @@ export function useState(fn) {
 
   if (hook.isNew) {
     currentTracker.state = {
-      value: typeof fn === "function" ? fn(currentTracker.props) : fn,
+      value: typeof fn === 'function' ? fn(currentTracker.props) : fn,
     };
 
     const component = currentTracker;
     hook.$setState = (setter) => {
       return component.setState((s) => ({
-        value: typeof setter === "function" ? setter(s.value) : setter,
+        value: typeof setter === 'function' ? setter(s.value) : setter,
       }));
     };
   }
