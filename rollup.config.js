@@ -5,6 +5,7 @@ import livereload from 'rollup-plugin-livereload';
 import { terser } from 'rollup-plugin-terser';
 import replace from '@rollup/plugin-replace';
 import babel from '@rollup/plugin-babel';
+import analyze from 'rollup-plugin-analyzer';
 
 const production = !process.env.ROLLUP_WATCH;
 
@@ -26,13 +27,14 @@ function runNpm(cmdName) {
 }
 
 export default {
-  input: production ? 'src/index.jsx' : 'public/js/index.jsx',
+  input: production ? 'src/index.js' : 'public/js/index.jsx',
   output: {
     name: 'xferno',
     sourcemap: true,
     format: production ? 'umd' : 'iife',
     file: production ? 'dist/xferno.js' : 'public/build/bundle.js',
   },
+  external: ['inferno'],
   plugins: [
     resolve({
       browser: true,
@@ -58,6 +60,8 @@ export default {
     // If we're building for production (npm run build
     // instead of npm run dev), minify
     production && terser(),
+
+    analyze(),
   ],
   watch: {
     clearScreen: false,
