@@ -1,6 +1,28 @@
 import { render } from 'inferno';
 import { xferno, useState, useEffect, useMemo } from '../../src/xferno';
 import { ContextContest } from './context-contest';
+import { createStore, StoreProvider } from './redux-like';
+
+const initialState = {
+  name: 'Context',
+  age: 3,
+};
+
+const actions = {
+  ageInc: (s) => ({ ...s, age: s.age + 1 }),
+  setName: (s, name) => ({ ...s, name }),
+};
+
+const reducer = (state, action, ...args) => {
+  const handler = actions[action];
+  if (handler) {
+    return handler(state, ...args);
+  }
+  console.warn('Unknown action,', action);
+  return state || initialState;
+}
+
+const store = createStore(initialState, reducer);
 
 function useTimeout(fn, ms) {
   const [state, setState] = useState(fn());
@@ -56,12 +78,14 @@ const HidableClock = xferno(() => {
 
 function Main() {
   return (
-    <main>
-      <h1>Xferno demo</h1>
-      <Counter />
-      <HidableClock />
-      <ContextContest />
-    </main>
+    <StoreProvider store={store}>
+      <main>
+        <h1>Xferno demo</h1>
+        <Counter />
+        <HidableClock />
+        <ContextContest />
+      </main>
+    </StoreProvider>
   );
 }
 

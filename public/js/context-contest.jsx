@@ -1,43 +1,4 @@
-import { Component } from 'inferno';
 import { xferno, useSelector, useDispatch, useRenderCache } from '../../src/xferno';
-
-const initialState = {
-  name: 'Context',
-  age: 3,
-};
-
-const actions = {
-  ageInc: (s) => ({ ...s, age: s.age + 1 }),
-  setName: (s, name) => ({ ...s, name }),
-};
-
-const reducer = (state, action, ...args) => {
-  const handler = actions[action];
-  if (handler) {
-    return handler(state, ...args);
-  }
-  console.warn('Unknown action,', action);
-  return state || initialState;
-}
-
-class CtxProvider extends Component {
-  constructor(props, ctx) {
-    super(props, ctx);
-    this.state = props.initialState;
-    this.dispatch = (...args) => this.setState((s) => props.reducer(s, ...args));
-  }
-
-  getChildContext() {
-    return {
-      state: this.state,
-      dispatch: this.dispatch,
-    };
-  }
-
-  render() {
-    return this.props.children;
-  }
-}
 
 let countC = 0;
 const ChildC = xferno(() => {
@@ -85,8 +46,6 @@ const ChildA = xferno(() => {
 
 export function ContextContest() {
   return (
-    <CtxProvider initialState={initialState} reducer={reducer}>
-      <ChildA debug={true} />
-    </CtxProvider>
+    <ChildA debug={true} />
   );
 }
