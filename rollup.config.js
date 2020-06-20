@@ -9,6 +9,8 @@ import analyze from 'rollup-plugin-analyzer';
 
 const production = !process.env.ROLLUP_WATCH;
 
+console.log('Build environment:', production ? 'production' : 'development');
+
 function runNpm(cmdName) {
   const started = {};
 
