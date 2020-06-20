@@ -1,9 +1,15 @@
 import { xferno, useSelector, useDispatch, useRenderCache } from '../../src/xferno';
 
 let countC = 0;
-const ChildC = xferno(() => {
+const ChildC = xferno(({ name }) => {
   const cache = useRenderCache();
-  return cache() || <footer>I should not re-render, but I have {countC++} times.</footer>;
+  return (
+    cache() || (
+      <footer>
+        I only re-render when "{name}" changes. (I've re-rendered {countC++} times).
+      </footer>
+    )
+  );
 });
 
 let countB = 0;
@@ -36,7 +42,7 @@ const ChildA = xferno(() => {
         </h1>
         <input value={name} onInput={(e) => dispatch('setName', e.target.value)} />
         <ChildB />
-        <ChildC />
+        <ChildC name={name} />
       </div>
     )
   );

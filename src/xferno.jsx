@@ -124,7 +124,7 @@ class HookComponent extends Component {
       return true;
     }
 
-    this.shouldUpdate = !eq(this.props, nextProps) || !eq(this.state.value, nextState.value);
+    this.shouldUpdate = !eq(this.props, nextProps);
     this.context = context;
     this.state = nextState;
     const renderResult = this.renderWith(nextProps, this.context);
