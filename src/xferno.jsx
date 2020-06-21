@@ -1,5 +1,9 @@
 import { Component } from 'inferno';
 import { eq } from './eq';
+import * as inferno from 'inferno';
+import { VNodeFlags } from 'inferno-vnode-flags';
+
+const emptyProps = {};
 
 /**
  * currentTracker tracks hook state for the currently rendering component.
@@ -26,9 +30,6 @@ class HookComponent extends Component {
     // this.state[hookId], and useSelector stores the Redux-like store
     // state in this.state.storeState.
     this.state = {};
-
-    // Used to prevent us from accidentally using the wrong hook context.
-    this.prevTracker;
 
     // Used if useSelector is ever invoked. We have a single Redux-like
     // store subscription per component, and we clean it up when we're done.
@@ -63,6 +64,10 @@ class HookComponent extends Component {
     return this.id++;
   }
 
+  /**
+   * Get a function which returns true if the component does not need to be rendered,
+   * otherwise false. See shouldComponentUpdate and useRenderCache for more details.
+   */
   getRenderCache() {
     if (!this.renderCache) {
       this.isPure = true;
@@ -71,6 +76,12 @@ class HookComponent extends Component {
     return this.renderCache;
   }
 
+  /**
+   * Get the state of the Redux store (context.store.getState()). This
+   * has a side-effect of ensuring that we are subscribed to the store
+   * so that we re-render if one of our subscriptions changes, even if
+   * a parent component's shouldComponentUpdate returns false.
+   */
   getStoreState() {
     if (!this.unsubscribeFromStore) {
       this.state.storeState = this.context.store.getState();
@@ -85,49 +96,72 @@ class HookComponent extends Component {
     return this.state.storeState;
   }
 
+  /**
+   * Get the Redux dispatch out of the context.
+   */
   getDispatch() {
     return this.context.store.dispatch;
   }
 
+  /**
+   * Get the next hook in the hook sequence.
+   * @param {*} watchList An item which is used to determine if the hook needs to be re-initialized
+   */
   getHook(watchList) {
     const id = this.nextId();
     let hook = this.hookInstances[id];
+    let value;
 
-    if (!hook || !eq(hook.watchList, watchList)) {
-      if (hook && hook.dispose) {
-        hook.dispose();
-      }
-      hook = {
-        id,
-        isNew: true,
-        watchList,
-        get value() {
-          return hook.$value;
-        },
-        set value(value) {
-          if (currentTracker.isPure) {
-            currentTracker.shouldUpdate = currentTracker.shouldUpdate || !eq(value, hook.$value);
-          }
-          hook.$value = value;
-        },
-      };
-      this.hookInstances[id] = hook;
-    } else {
+    if (hook && eq(hook.watchList, watchList)) {
       hook.isNew = false;
+      return hook;
     }
 
+    if (hook && hook.dispose) {
+      hook.dispose();
+    }
+
+    hook = {
+      id,
+      isNew: true,
+      watchList,
+      get value() {
+        return value;
+      },
+      set value(v) {
+        if (currentTracker.isPure) {
+          currentTracker.shouldUpdate = currentTracker.shouldUpdate || !eq(v, value);
+        }
+        value = v;
+      },
+    };
+
+    this.hookInstances[id] = hook;
     return hook;
   }
 
+  /**
+   * If useRenderCache has been called, then isPure will be true, and we will
+   * do some tomfoolery to determine if we really need to re-render. We need
+   * to run the hooks in order to know if re-rendering is necessary, and the
+   * hooks only run when we *render* the child. So we actually need to render
+   * the child. The caller of useRenderCache is responsible for exiting their
+   * render function early if the cache() result is true. (See readme for
+   * useRenderCache examples.)
+   */
   shouldComponentUpdate(nextProps, nextState, context) {
     if (!this.isPure) {
       return true;
     }
 
-    this.shouldUpdate = !eq(this.props, nextProps);
-    this.context = context;
+    // We'll always update if the child props change.
+    this.shouldUpdate = !eq(this.props.childProps, nextProps.childProps);
+
+    // This ensures that any calls to useState will get the latest state.
     this.state = nextState;
-    const renderResult = this.renderWith(nextProps, this.context);
+
+    // We cache the result of the render, so that we don't *double* render.
+    const renderResult = this.renderWith(nextProps, context);
 
     // We only want to set this.renderResult if we are updating. Because otherwise, it's
     // a boolean (bypassing the possibly expensive v-dom generation).
@@ -142,36 +176,50 @@ class HookComponent extends Component {
     return this.renderResult || this.renderWith(this.props, this.context);
   }
 
-  renderWith({ props, render }, context) {
+  renderWith({ childProps, child }, context) {
+    // Push ourselves onto the hook stack
+    const prevTracker = currentTracker;
+    currentTracker = this;
+
     // When we begin a render pass, we need to reset our hook ids,
     // so that the sequence is consistent between render calls.
     this.id = 0;
 
-    // Keep track of the previous hook state, in case we're doing
-    // nested hook invocations.
-    this.prevTracker = currentTracker;
-
-    // Assign our global hook tracker, so all hook calls get
-    // the correct context.
-    currentTracker = this;
-
     try {
-      return render(props, context);
+      return child(childProps || emptyProps, context);
     } finally {
-      // Restore the hook state for whatever component invoked us.
-      currentTracker = this.prevTracker;
+      // Pop ourselves off of the hook stack
+      currentTracker = prevTracker;
     }
   }
 }
 
 /**
- * Create a hook-enabled inferno component.
- *
- * @param {FunctionalComponent} render The Inferno function component being wrapped.
+ * These inferno exports are required in order for xferno to be
+ * compatible with babel-plugin-inferno.
  */
-export function xferno(render) {
-  return (props) => <HookComponent props={props} render={render} />;
-}
+export const createVNode = inferno.createVNode;
+export const normalizeProps = inferno.normalizeProps;
+export const createTextVNode = inferno.createTextVNode;
+export const createFragment = inferno.createFragment;
+
+/**
+ * Here, we override inferno's createComponentVNode if the node being created
+ * is a functional component. In that case we wrap it in our HookComponent.
+ */
+export const createComponentVNode = (flags, type, props, key, ref) => {
+  if (type.prototype instanceof inferno.Component) {
+    return inferno.createComponentVNode(flags, type, props, key, ref);
+  }
+
+  return inferno.createComponentVNode(
+    VNodeFlags.ComponentUnknown,
+    HookComponent,
+    { child: type, childProps: props },
+    key,
+    ref,
+  );
+};
 
 /**
  * Returns a stateful value, and a function to update it.

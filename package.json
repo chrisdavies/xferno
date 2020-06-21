@@ -1,6 +1,6 @@
 {
   "name": "xferno",
-  "version": "0.0.2",
+  "version": "0.0.3",
   "description": "React hook-like capabilities for inferno.",
   "author": "Christopher Davies <github@christophilus.com>",
   "repository": {

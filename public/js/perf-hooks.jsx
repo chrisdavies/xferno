@@ -1,7 +1,6 @@
 // This implementation runs at roughly 200 fps
 import { render } from 'inferno';
 import {
-  xferno,
   useState,
   useEffect,
   useSelector,
@@ -9,28 +8,7 @@ import {
   useRenderCache,
   ReduxStoreProvider,
 } from '../../src';
-import { createStore } from './redux-like';
-
-const initialState = {
-  name: 'Context',
-  age: 3,
-};
-
-const actions = {
-  ageInc: (s) => ({ ...s, age: s.age + 1 }),
-  setName: (s, name) => ({ ...s, name }),
-};
-
-const reducer = (state, action, ...args) => {
-  const handler = actions[action];
-  if (handler) {
-    return handler(state, ...args);
-  }
-  console.warn('Unknown action,', action);
-  return state || initialState;
-};
-
-const store = createStore(reducer, initialState);
+import { fps, store } from './perf-helper';
 
 function useInterval(fn, ms) {
   useEffect(() => {
@@ -45,29 +23,7 @@ function useInterval(fn, ms) {
   });
 }
 
-function fpsTracker() {
-  let time = Date.now();
-  let renderCount = 0;
-  let fps = 0;
-
-  return () => {
-    ++renderCount;
-
-    if (renderCount > 20) {
-      const now = Date.now();
-      const s = (now - time) / 1000;
-      fps = (renderCount / s).toFixed(2);
-      time = now;
-      renderCount = 0;
-    }
-
-    return fps;
-  };
-}
-
-const fps = fpsTracker();
-
-const Age = xferno(() => {
+function Age() {
   const cache = useRenderCache();
   const age = useSelector((s) => s.age);
   const dispatch = useDispatch();
@@ -87,16 +43,16 @@ const Age = xferno(() => {
       </>
     )
   );
-});
+}
 
-const Counter = xferno(() => {
+function Counter() {
   const cache = useRenderCache();
   const [count, setState] = useState(0);
 
   return cache() || <button onClick={() => setState(count + 1)}>{count}</button>;
-});
+}
 
-const Name = xferno(() => {
+function Name() {
   const cache = useRenderCache();
   const name = useSelector((s) => s.name);
   const dispatch = useDispatch();
@@ -120,9 +76,9 @@ const Name = xferno(() => {
       </div>
     )
   );
-});
+}
 
-const Footer = xferno(() => {
+function Footer() {
   const cache = useRenderCache();
 
   return (
@@ -132,13 +88,13 @@ const Footer = xferno(() => {
       </footer>
     )
   );
-});
+}
 
 function Main() {
   return (
     <ReduxStoreProvider store={store}>
       <main>
-        <h1>Xferno demo</h1>
+        <h1>Xferno perf (hooks)</h1>
         <Name />
         <Footer />
       </main>

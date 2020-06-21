@@ -1,5 +1,5 @@
 import { render } from 'inferno';
-import { xferno, useState, useEffect, useMemo, ReduxStoreProvider } from '../../src';
+import { useState, useEffect, useMemo, ReduxStoreProvider } from '../../src';
 import { ContextContest } from './context-contest';
 import { createStore } from './redux-like';
 
@@ -41,7 +41,7 @@ function useTimeout(fn, ms) {
   return state;
 }
 
-const Counter = xferno(() => {
+function Counter() {
   const [count, setCount] = useState(0);
   const everyFifth = useMemo(() => count, Math.floor(count / 5));
 
@@ -52,15 +52,15 @@ const Counter = xferno(() => {
       <button onClick={() => setCount(count + 1)}>+</button>
     </div>
   );
-});
+}
 
-const Clock = xferno(() => {
+function Clock() {
   const time = useTimeout(() => new Date().toLocaleTimeString(), 1000);
 
   return <h1>It is now {time}</h1>;
-});
+}
 
-const HidableClock = xferno(() => {
+function HidableClock() {
   const [show, setShow] = useState(false);
   const toggleClock = () => setShow((s) => !s);
 
@@ -70,9 +70,9 @@ const HidableClock = xferno(() => {
       {show && <Clock />}
     </div>
   );
-});
+}
 
-const MultiState = xferno(() => {
+function MultiState() {
   const [a, setA] = useState(0);
   const [b, setB] = useState(2);
 
@@ -82,7 +82,7 @@ const MultiState = xferno(() => {
       <button onClick={() => setB(b + 1)}>+ {b}</button>
     </div>
   );
-});
+}
 
 function Main() {
   return (

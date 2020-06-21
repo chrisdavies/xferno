@@ -2,19 +2,19 @@
 
 React hooks for [infernojs](https://infernojs.org/).
 
+Status: experimental. See the "How it works" note at the bottom of this readme.
 ## Quick example
 
 ```js
-import { xferno, useState } from 'xferno';
+import { useState } from 'xferno';
 
-const Counter = xferno(() => {
+function Counter() {
   const [count, setCount] = useState(0);
 
   return (
     <button onClick={() => setCount(count + 1)}>{count}</button>
   );
-});
-
+}
 ```
 
 ## Installation
@@ -23,9 +23,20 @@ const Counter = xferno(() => {
 npm install --save xferno
 ```
 
-## Usage
+## Configuration
 
-Components which use hooks *must* be wrapped in a call to `xferno`. Otherwise, the hooks will have undefined behavior.
+Be sure to modify your `babel-plugin-inferno` to have `imports: 'xferno'`:
+
+```json
+[
+  "babel-plugin-inferno",
+  {
+    "imports": "xferno"
+  }
+]
+```
+
+## Usage
 
 The following "primitive" hooks are built into xferno. Custom hooks can be composed from these.
 
@@ -42,9 +53,9 @@ These each work similarly to the React equivalents. (Some of these have no React
 ### useState
 
 ```js
-import { xferno, useState } from 'xferno';
+import { useState } from 'xferno';
 
-const Password = xferno(() => {
+function Password() {
   // state can be a primitive for an object, etc. setState can be called
   // with a callback setState((s) => s) or with the new value for state
   // setState({ password: 'hoi' })
@@ -57,7 +68,7 @@ const Password = xferno(() => {
       onInput={(e) => setState((s) => ({ ...s, password: e.target.value }))}
     />
   );
-});
+}
 ```
 
 ### useEffect
@@ -69,9 +80,9 @@ function, that function will be invoked when the component is disposed or before
 effect re-runs, which ever comes first.
 
 ```js
-import { xferno, useState, useEffect } from 'xferno';
+import { useState, useEffect } from 'xferno';
 
-const Clock = xferno(() => {
+function Clock() {
   const [time, setTime] = useState(new Date());
 
   useEffect(() => {
@@ -85,7 +96,7 @@ const Clock = xferno(() => {
   return (
     <h1>{time.toString()}</h1>
   );
-});
+}
 ```
 
 ### useMemo
@@ -96,9 +107,9 @@ any time the second argument changes.
 
 
 ```js
-import { xferno, useMemo } from 'xferno';
+import { useMemo } from 'xferno';
 
-const Fanci = xferno((props) => {
+function Fanci(props) {
   const name = useMemo(() => {
     return reallyExpensiveCalculationFor(props.name);
   }, props.name);
@@ -106,7 +117,7 @@ const Fanci = xferno((props) => {
   return (
     <h1>{name}</h1>
   );
-});
+}
 ```
 
 ### useDisposable
@@ -118,9 +129,9 @@ argument is re-invoked or whenever the component is destroyed.
 The first argument is a function which must return an object with a value property and a dispose function.
 
 ```js
-import { xferno, useDisposable } from 'xferno';
+import { useDisposable } from 'xferno';
 
-const Video = xferno((props) => {
+function Video(props) {
   const url = useDisposable(() => {
     const value = URL.createObjectURL(props.file);
     return {
@@ -132,7 +143,7 @@ const Video = xferno((props) => {
   return (
     <video src={url}></video>
   );
-});
+}
 ```
 
 ### useSelector
@@ -146,16 +157,16 @@ It is expected that `context.store` is a Redux (or similar) store, with `dispatc
 You can create your own component which provides this context, or you can use `ReduxStoreProvider`to provide it (as detailed further down).
 
 ```js
-import { xferno, useSelector } from 'xferno';
+import { useSelector } from 'xferno';
 
-const Hello = xferno(() => {
+function Hello() {
   // Assuming we have Redux state that looks something like { name: 'World' }
   const name = useSelector((s) => s.name);
 
   return (
     <h1>Hello, {name}</h1>
   );
-});
+}
 ```
 
 ### useDispatch
@@ -165,9 +176,9 @@ const Hello = xferno(() => {
 This has the same requirements regarding Redux / store as `useSelector`.
 
 ```js
-import { xferno, useSelector, useDispatch } from 'xferno';
+import { useSelector, useDispatch } from 'xferno';
 
-const ReduxCounter = xferno(() => {
+function ReduxCounter() {
   // Assuming we have Redux state that looks something like { count: 0 }
   const count = useSelector((s) => s.count);
   const dispatch = useDispatch();
@@ -179,7 +190,7 @@ const ReduxCounter = xferno(() => {
       {count}
     </button>
   );
-});
+}
 ```
 
 ### useRenderCache
@@ -192,9 +203,9 @@ Let's take the `useDispatch` example from above, and avoid VDOM operations if no
 
 
 ```js
-import { xferno, useSelector, useDispatch, useRenderCache } from 'xferno';
+import { useSelector, useDispatch, useRenderCache } from 'xferno';
 
-const ReduxCounter = xferno(() => {
+function ReduxCounter() {
   const cache = useRenderCache(); // <- This line is new
   const count = useSelector((s) => s.count);
   const dispatch = useDispatch();
@@ -207,7 +218,7 @@ const ReduxCounter = xferno(() => {
       {count}
     </button>
   );
-});
+}
 ```
 
 ## ReduxStoreProvider
@@ -231,6 +242,17 @@ function Main() {
   );
 }
 ```
+
+## How it works
+
+This overrides inferno's `createComponentVNode` function and wraps *all* functional components in a hook-aware wrapper. The overriding of a core inferno function is what makes this an experimental library. This also modifies a global hook context in order to track hook state correctly across components. The level of hackery here means that more time and production-grade vetting is required before the experimental classification is removed.
+
+Things that could use improving / adding:
+
+- TypeScript definitions
+- Better minification
+- More intelligent hook state tracking 
+  - Right now, we wrap all functional components, but it would be far prefrable to somehow detect only those components that actually use hooks, and only wrap those.
 
 ## License
 

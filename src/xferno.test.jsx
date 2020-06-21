@@ -1,5 +1,4 @@
 import {
-  xferno,
   useState,
   useEffect,
   useDisposable,
@@ -16,22 +15,32 @@ function emit(eventName, node, eventArgs) {
 }
 
 test('renders using state', async () => {
-  const Hello = xferno(({ name }) => {
+  const Hello = ({ name }) => {
     const [count] = useState(42);
     return (
       <h1>
         Hi {name} {count}
       </h1>
     );
-  });
+  };
 
   const rendered = util.renderIntoContainer(<Hello name="George" />);
   const [h1] = util.scryRenderedDOMElementsWithTag(rendered, 'h1');
   expect(h1.innerHTML).toMatchInlineSnapshot(`"Hi George 42"`);
 });
 
+test('ensures that props is not empty', async () => {
+  const Hello = ({ name }) => {
+    return <h1>Hey. {name || 'You are awesome.'}</h1>;
+  };
+
+  const rendered = util.renderIntoContainer(<Hello />);
+  const [h1] = util.scryRenderedDOMElementsWithTag(rendered, 'h1');
+  expect(h1.innerHTML).toMatchInlineSnapshot(`"Hey. You are awesome."`);
+});
+
 test('multiple useStates are allowed', async () => {
-  const Hello = xferno(({ name }) => {
+  const Hello = ({ name }) => {
     const [count, setState] = useState(42);
     const [lastName, setLastName] = useState('Cat');
 
@@ -43,7 +52,7 @@ test('multiple useStates are allowed', async () => {
         <button onClick={() => setLastName(lastName + 't')}>add a t</button>
       </>
     );
-  });
+  };
 
   const rendered = util.renderIntoContainer(<Hello name="George" />);
   const [h1] = util.scryRenderedDOMElementsWithTag(rendered, 'h1');
@@ -60,11 +69,11 @@ test('multiple useStates are allowed', async () => {
 
 test('effects only run once', () => {
   const fx = jest.fn();
-  const Hello = xferno(() => {
+  const Hello = () => {
     const [count, setState] = useState(0);
     useEffect(fx);
     return <h1 onClick={() => setState(count + 1)}>Count is {count}</h1>;
-  });
+  };
 
   const rendered = util.renderIntoContainer(<Hello />);
   const [h1] = util.scryRenderedDOMElementsWithTag(rendered, 'h1');
@@ -79,12 +88,12 @@ test('effects are disposed when unmounted', () => {
   const dispose = jest.fn();
   const fx = jest.fn(() => dispose);
 
-  const Child = xferno(() => {
+  const Child = () => {
     useEffect(fx);
     return <span>Child</span>;
-  });
+  };
 
-  const Hello = xferno(() => {
+  const Hello = () => {
     const [count, setState] = useState(0);
 
     return (
@@ -93,7 +102,7 @@ test('effects are disposed when unmounted', () => {
         {count < 2 && <Child />}
       </h1>
     );
-  });
+  };
 
   const rendered = util.renderIntoContainer(<Hello />);
   const [h1] = util.scryRenderedDOMElementsWithTag(rendered, 'h1');
@@ -112,12 +121,12 @@ test('use disposable is disposed of', () => {
   const dispose = jest.fn();
   const fx = jest.fn(() => ({ value: 'World', dispose }));
 
-  const Hello = xferno(() => {
+  const Hello = () => {
     const [count, setState] = useState(0);
     const name = useDisposable(fx, count < 2);
 
     return <h1 onClick={() => setState(count + 1)}>Hello, {name}</h1>;
-  });
+  };
 
   const rendered = util.renderIntoContainer(<Hello />);
   const [h1] = util.scryRenderedDOMElementsWithTag(rendered, 'h1');
@@ -137,11 +146,11 @@ test('use disposable is disposed of', () => {
 test('use memo is only called when its watch list changes', () => {
   const fx = jest.fn((count) => `Count is ${count}`);
 
-  const Hello = xferno(() => {
+  const Hello = () => {
     const [count, setState] = useState(0);
     const name = useMemo(() => fx(count), [Math.floor(count / 2)]);
     return <h1 onClick={() => setState(count + 1)}>{name}</h1>;
-  });
+  };
 
   const rendered = util.renderIntoContainer(<Hello />);
   const [h1] = util.scryRenderedDOMElementsWithTag(rendered, 'h1');
@@ -162,10 +171,10 @@ test('use memo is only called when its watch list changes', () => {
 test('useDispatch dispatches to the contextual store', () => {
   const mockDispatch = jest.fn();
 
-  const Hello = xferno(() => {
+  const Hello = () => {
     const dispatch = useDispatch();
     return <button onClick={() => dispatch('iwasclicked')}>Click me!</button>;
-  });
+  };
 
   const Test = () => (
     <ReduxStoreProvider store={{ dispatch: mockDispatch }}>
@@ -192,10 +201,10 @@ test('useSelector retrieves the value from state, and redraws when the value cha
     subscribe: (fn) => subscriptions.push(fn),
   };
 
-  const Hello = xferno(() => {
+  const Hello = () => {
     const name = useSelector((s) => s.name);
     return <h1>{name}</h1>;
-  });
+  };
 
   const Test = () => (
     <ReduxStoreProvider store={store}>
@@ -224,12 +233,12 @@ test('components unsubscribe from stores when they are disposed', () => {
     },
   };
 
-  const Hello = xferno(() => {
+  const Hello = () => {
     const name = useSelector((s) => s.name);
     return <h1>{name}</h1>;
-  });
+  };
 
-  const ShowHello = xferno(() => {
+  const ShowHello = () => {
     const [show, setShow] = useState(true);
     return (
       <div>
@@ -237,7 +246,7 @@ test('components unsubscribe from stores when they are disposed', () => {
         <button onClick={() => setShow(false)}>Hide</button>
       </div>
     );
-  });
+  };
 
   const Test = () => (
     <ReduxStoreProvider store={store}>
@@ -273,7 +282,7 @@ test('renderCache and useSelector work together', () => {
     subscribe: (fn) => subscriptions.push(fn),
   };
 
-  const Age = xferno(() => {
+  const Age = () => {
     const cache = useRenderCache();
     const age = useSelector((s) => s.age);
     return (
@@ -284,9 +293,9 @@ test('renderCache and useSelector work together', () => {
         </h2>
       )
     );
-  });
+  };
 
-  const Name = xferno(() => {
+  const Name = () => {
     const cache = useRenderCache();
     const name = useSelector((s) => s.name);
     return (
@@ -300,7 +309,7 @@ test('renderCache and useSelector work together', () => {
         </>
       )
     );
-  });
+  };
 
   const Test = () => (
     <ReduxStoreProvider store={store}>

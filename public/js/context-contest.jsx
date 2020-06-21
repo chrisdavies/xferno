@@ -1,7 +1,7 @@
-import { xferno, useSelector, useDispatch, useRenderCache } from '../../src/xferno';
+import { useSelector, useDispatch, useRenderCache } from '../../src/xferno';
 
 let countC = 0;
-const ChildC = xferno(({ name }) => {
+function ChildC({ name }) {
   const cache = useRenderCache();
   return (
     cache() || (
@@ -10,10 +10,10 @@ const ChildC = xferno(({ name }) => {
       </footer>
     )
   );
-});
+}
 
 let countB = 0;
-const ChildB = xferno(() => {
+function ChildB() {
   const cache = useRenderCache();
   const age = useSelector((s) => s.age);
   const dispatch = useDispatch();
@@ -26,10 +26,10 @@ const ChildB = xferno(() => {
       </p>
     )
   );
-});
+}
 
 let countA = 0;
-const ChildA = xferno(() => {
+function ChildA() {
   const cache = useRenderCache();
   const name = useSelector((s) => s.name);
   const dispatch = useDispatch();
@@ -46,7 +46,7 @@ const ChildA = xferno(() => {
       </div>
     )
   );
-});
+}
 
 export function ContextContest() {
   return <ChildA debug={true} />;
