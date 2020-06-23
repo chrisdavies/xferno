@@ -67,6 +67,47 @@ test('multiple useStates are allowed', async () => {
   expect(h1.innerHTML).toMatchInlineSnapshot(`"Hi George Catt 43"`);
 });
 
+test('dynamic component switching works', async () => {
+  const childMap = {
+    a({ name, setName }) {
+      const [state] = useState('ahoy');
+      return (
+        <button onClick={() => setName('b')}>
+          {state} {name}
+        </button>
+      );
+    },
+    b({ name, setName }) {
+      const [state] = useState('there');
+      return (
+        <button onClick={() => setName('a')}>
+          {state} {name}
+        </button>
+      );
+    },
+  };
+
+  const Hello = () => {
+    const [name, setName] = useState('a');
+    const Child = childMap[name];
+
+    return <Child name={name} setName={setName} />;
+  };
+
+  const rendered = util.renderIntoContainer(<Hello />);
+  const [btn] = util.scryRenderedDOMElementsWithTag(rendered, 'button');
+
+  expect(btn.innerHTML).toMatchInlineSnapshot(`"ahoy a"`);
+
+  emit('onClick', btn);
+
+  expect(btn.innerHTML).toMatchInlineSnapshot(`"there b"`);
+
+  emit('onClick', btn);
+
+  expect(btn.innerHTML).toMatchInlineSnapshot(`"ahoy a"`);
+});
+
 test('effects only run once', () => {
   const fx = jest.fn();
   const Hello = () => {

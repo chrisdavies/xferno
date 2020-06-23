@@ -15,6 +15,10 @@ let currentTracker;
 class HookComponent extends Component {
   constructor(props, context) {
     super(props, context);
+    this.reset();
+  }
+
+  reset() {
     // Used to generate sequential hook ids for this component
     // the sequenial requirement is why hooks can't be in conditionals.
     this.id = 0;
@@ -48,7 +52,14 @@ class HookComponent extends Component {
     this.renderResult = undefined;
   }
 
-  componentWillUnmount() {
+  componentWillReceiveProps({ child }) {
+    if (child !== this.props.child) {
+      this.dispose();
+      this.reset();
+    }
+  }
+
+  dispose() {
     // Clean our Redux subscription.
     if (this.unsubscribeFromStore) {
       this.unsubscribeFromStore();
@@ -58,6 +69,10 @@ class HookComponent extends Component {
     this.hookInstances.forEach((hook) => {
       return hook && hook.dispose && hook.dispose();
     });
+  }
+
+  componentWillUnmount() {
+    this.dispose();
   }
 
   nextId() {
