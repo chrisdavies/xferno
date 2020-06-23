@@ -11,6 +11,17 @@ const production = !process.env.ROLLUP_WATCH;
 
 console.log('Build environment:', production ? 'production' : 'development');
 
+function getInputFile() {
+  if (production) {
+    return 'src/index.js';
+  }
+  const i = process.argv.indexOf('--in');
+  if (i < 0) {
+    return 'public/js/index.jsx';
+  }
+  return process.argv[i + 1];
+}
+
 function runNpm(cmdName) {
   const started = {};
 
@@ -29,7 +40,7 @@ function runNpm(cmdName) {
 }
 
 export default {
-  input: production ? 'src/index.js' : 'public/js/index.jsx',
+  input: getInputFile(),
   output: {
     name: 'xferno',
     sourcemap: true,

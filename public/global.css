@@ -64,3 +64,11 @@ button:not(:disabled):active {
 button:focus {
   border-color: #666;
 }
+
+.bench-stats {
+  font-family: monospace;
+}
+
+.bench-stats td {
+  padding: 0.25rem 1rem;
+}
