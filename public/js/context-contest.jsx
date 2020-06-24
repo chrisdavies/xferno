@@ -10,16 +10,20 @@ function ChildC({ name }) {
 }
 
 let countB = 0;
-function ChildB() {
-  const age = useSelector((s) => s.age);
-  const dispatch = useDispatch();
-
+function Age({ age, dispatch }) {
   return (
     <p>
       Age {age}. I have rendered {countB++} times.
       <button onClick={() => dispatch('ageInc')}>+</button>
     </p>
   );
+}
+
+function ChildB() {
+  const age = useSelector((s) => s.age);
+  const dispatch = useDispatch();
+
+  return <Age age={age} dispatch={dispatch} />;
 }
 
 let countA = 0;
