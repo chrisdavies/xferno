@@ -39,16 +39,12 @@ class HookComponent extends Component {
     // store subscription per component, and we clean it up when we're done.
     this.unsubscribeFromStore = undefined;
 
-    // If useRenderCache is called, this will be set to true, and we
-    // will then only re-render if hooks change.
-    this.isPure = false;
-
-    // If isPure, this will be used to determine the result of
-    // shouldComponentUpdate... see useRenderCache for more details.
+    // Determines whether or not the component should update.
     this.shouldUpdate = true;
 
-    // If isPure, this will be the result of our render, if
-    // shouldComponentUpdate is true. See useRenderCache for more details.
+    // We pre-render in shouldComponentUpdate, in order to avoid v-dom diffs.
+    // This is the result of that render, and will be our return value from our
+    // render.
     this.renderResult = undefined;
   }
 
@@ -77,18 +73,6 @@ class HookComponent extends Component {
 
   nextId() {
     return this.id++;
-  }
-
-  /**
-   * Get a function which returns true if the component does not need to be rendered,
-   * otherwise false. See shouldComponentUpdate and useRenderCache for more details.
-   */
-  getRenderCache() {
-    if (!this.renderCache) {
-      this.isPure = true;
-      this.renderCache = () => !this.shouldUpdate;
-    }
-    return this.renderCache;
   }
 
   /**
@@ -144,9 +128,7 @@ class HookComponent extends Component {
         return value;
       },
       set value(v) {
-        if (currentTracker.isPure) {
-          currentTracker.shouldUpdate = currentTracker.shouldUpdate || !eq(v, value);
-        }
+        currentTracker.shouldUpdate = currentTracker.shouldUpdate || !eq(v, value);
         value = v;
       },
     };
@@ -156,19 +138,12 @@ class HookComponent extends Component {
   }
 
   /**
-   * If useRenderCache has been called, then isPure will be true, and we will
-   * do some tomfoolery to determine if we really need to re-render. We need
+   * We do some tomfoolery to determine if we really need to re-render. We need
    * to run the hooks in order to know if re-rendering is necessary, and the
    * hooks only run when we *render* the child. So we actually need to render
-   * the child. The caller of useRenderCache is responsible for exiting their
-   * render function early if the cache() result is true. (See readme for
-   * useRenderCache examples.)
+   * the child.
    */
   shouldComponentUpdate(nextProps, nextState, context) {
-    if (!this.isPure) {
-      return true;
-    }
-
     // We'll always update if the child props change.
     this.shouldUpdate = !eq(this.props.childProps, nextProps.childProps);
 
@@ -327,12 +302,4 @@ export function useSelector(fn) {
  */
 export function useDispatch() {
   return currentTracker.getDispatch();
-}
-
-/**
- * Get a function which can be used to bypass expensive rendering.
- * @returns {() => boolean} A function which returns true if the render result is already cached and can be skipped, otherwise false.
- */
-export function useRenderCache() {
-  return currentTracker.getRenderCache();
 }

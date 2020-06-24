@@ -46,7 +46,6 @@ The following "primitive" hooks are built into xferno. Custom hooks can be compo
 - useDisposable
 - useSelector
 - useDispatch
-- useRenderCache
 
 These each work similarly to the React equivalents. (Some of these have no React equivalents, though, so... keep reading.)
 
@@ -184,34 +183,6 @@ function ReduxCounter() {
   const dispatch = useDispatch();
 
   return (
-    <button
-      onClick={() => dispatch({ type: 'INC' })}
-    >
-      {count}
-    </button>
-  );
-}
-```
-
-### useRenderCache
-
-`useRenderCache` provides a mechanism for your component to avoid expensive rendering when it's not necessary.
-It does this by shallow-diffing props, state, and any values returned from useSelector, and only rerenders when
-one or more of those things have changed.
-
-Let's take the `useDispatch` example from above, and avoid VDOM operations if nothing has changed.
-
-
-```js
-import { useSelector, useDispatch, useRenderCache } from 'xferno';
-
-function ReduxCounter() {
-  const cache = useRenderCache(); // <- This line is new
-  const count = useSelector((s) => s.count);
-  const dispatch = useDispatch();
-
-  // Note the use of cache() here
-  return cache() || (
     <button
       onClick={() => dispatch({ type: 'INC' })}
     >

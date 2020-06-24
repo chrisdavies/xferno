@@ -1,12 +1,4 @@
-import {
-  useState,
-  useEffect,
-  useDisposable,
-  useMemo,
-  useDispatch,
-  useSelector,
-  useRenderCache,
-} from './xferno';
+import { useState, useEffect, useDisposable, useMemo, useDispatch, useSelector } from './xferno';
 import { ReduxStoreProvider } from './redux-store-provider';
 import * as util from 'inferno-test-utils';
 
@@ -305,79 +297,4 @@ test('components unsubscribe from stores when they are disposed', () => {
   emit('onClick', btn);
 
   expect(unsubscribe).toHaveBeenCalled();
-});
-
-test('renderCache and useSelector work together', () => {
-  const ageCount = jest.fn();
-  const nameCount = jest.fn();
-  let state = { name: 'George', age: 100 };
-  const subscriptions = [];
-
-  const setState = (s) => {
-    state = s;
-    subscriptions.forEach((f) => f());
-  };
-
-  const store = {
-    getState: () => state,
-    subscribe: (fn) => subscriptions.push(fn),
-  };
-
-  const Age = () => {
-    const cache = useRenderCache();
-    const age = useSelector((s) => s.age);
-    return (
-      cache() || (
-        <h2>
-          {age}
-          {ageCount()}
-        </h2>
-      )
-    );
-  };
-
-  const Name = () => {
-    const cache = useRenderCache();
-    const name = useSelector((s) => s.name);
-    return (
-      cache() || (
-        <>
-          <h1>
-            {name}
-            {nameCount()}
-          </h1>
-          <Age />
-        </>
-      )
-    );
-  };
-
-  const Test = () => (
-    <ReduxStoreProvider store={store}>
-      <Name />
-    </ReduxStoreProvider>
-  );
-
-  const rendered = util.renderIntoContainer(<Test />);
-  const [h1] = util.scryRenderedDOMElementsWithTag(rendered, 'h1');
-  const [h2] = util.scryRenderedDOMElementsWithTag(rendered, 'h2');
-
-  expect(h1.innerHTML).toMatchInlineSnapshot(`"George"`);
-  expect(h2.innerHTML).toMatchInlineSnapshot(`"100"`);
-  expect(ageCount).toHaveBeenCalledTimes(1);
-  expect(nameCount).toHaveBeenCalledTimes(1);
-
-  setState({ name: 'George Orwell', age: 100 });
-
-  expect(h1.innerHTML).toMatchInlineSnapshot(`"George Orwell"`);
-  expect(h2.innerHTML).toMatchInlineSnapshot(`"100"`);
-  expect(ageCount).toHaveBeenCalledTimes(1);
-  expect(nameCount).toHaveBeenCalledTimes(2);
-
-  setState({ name: 'George Orwell', age: 128 });
-
-  expect(h1.innerHTML).toMatchInlineSnapshot(`"George Orwell"`);
-  expect(h2.innerHTML).toMatchInlineSnapshot(`"128"`);
-  expect(ageCount).toHaveBeenCalledTimes(2);
-  expect(nameCount).toHaveBeenCalledTimes(2);
 });

@@ -1,4 +1,4 @@
-// This implementation runs at roughly 200 fps, peak is around 215
+// This implementation runs at roughly 200 fps
 import { render, Component } from 'inferno';
 import { fps, mem, store } from './perf-helper';
 
@@ -62,13 +62,35 @@ function Cell({ val, i }) {
   );
 }
 
-function Arr({ state: { arr } }) {
+function Row({ arr }) {
   return (
     <>
       {arr.map((val, i) => (
         <Cell val={val} i={i} key={i} />
       ))}
-      <Stats />
+    </>
+  );
+}
+
+function LiveStats() {
+  return <Stats />;
+}
+
+function fill(size) {
+  const rows = new Array(size);
+  rows.fill(0);
+  return rows;
+}
+
+function Arr({ state }) {
+  const size = 50;
+  const { arr } = state;
+
+  return (
+    <>
+      {fill(arr.length / size).map((_v, i) => (
+        <Row key={i} arr={arr.slice(i * size, i * size + size)} />
+      ))}
     </>
   );
 }
@@ -101,6 +123,7 @@ class Main extends Component {
       <main>
         <h1>Xferno perf (raw)</h1>
         <Arr state={this.state} dispatch={this.store.dispatch} />
+        <Stats state={this.state} />
       </main>
     );
   }

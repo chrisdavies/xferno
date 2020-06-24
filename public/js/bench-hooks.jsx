@@ -1,6 +1,6 @@
 // This implementation runs at roughly 200 fps
 import { render } from 'inferno';
-import { useEffect, useSelector, useDispatch, ReduxStoreProvider } from '../../src';
+import { useEffect, useSelector, useState, useDispatch, ReduxStoreProvider } from '../../src';
 import { fps, mem, store } from './perf-helper';
 
 function useInterval(fn, ms) {
@@ -17,8 +17,11 @@ function useInterval(fn, ms) {
 }
 
 function Stats() {
+  const [, setState] = useState(0);
   const fpsStat = fps();
   const memStat = mem();
+
+  useInterval(() => setState((x) => x + 1), 200);
 
   return (
     <table class="bench-stats">
@@ -76,18 +79,43 @@ function Cell({ val, i }) {
   );
 }
 
-function Arr() {
-  const arr = useSelector((s) => s.arr);
-  const dispatch = useDispatch();
-
-  useInterval(() => dispatch('incSome'), 1);
+function Row({ start, size }) {
+  const arr = useSelector((s) => s.arr.slice(start, start + size));
 
   return (
     <>
       {arr.map((val, i) => (
         <Cell val={val} i={i} key={i} />
       ))}
-      <Stats />
+    </>
+  );
+}
+
+function LiveStats() {
+  useSelector((s) => s);
+
+  return <Stats />;
+}
+
+function fill(size) {
+  const rows = new Array(size);
+  rows.fill(0);
+  return rows;
+}
+
+function Arr() {
+  const len = useSelector((s) => s.arr.length);
+  const dispatch = useDispatch();
+  const size = 50;
+
+  useInterval(() => dispatch('incSome'), 1);
+
+  return (
+    <>
+      {fill(len / size).map((_v, i) => (
+        <Row key={i} start={i * size} size={size} />
+      ))}
+      <LiveStats />
     </>
   );
 }
