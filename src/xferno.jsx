@@ -6,110 +6,48 @@ import { VNodeFlags } from 'inferno-vnode-flags';
 const emptyProps = {};
 
 /**
- * currentTracker tracks hook state for the currently rendering component.
- * When an xferno component is rendered, its hook state tracker becomes currentTracker.
+ * currentComponent tracks hook state for the currently rendering component.
+ * When an xferno component is rendered, its hook state tracker becomes currentComponent.
  * When rendering is complete, the previous tracker, if any, is restored.
  */
-let currentTracker;
+let currentComponent;
 
-class HookComponent extends Component {
-  constructor(props, context) {
-    super(props, context);
-    this.reset();
+function renderChild(component, { child, childProps }, context) {
+  // Push ourselves onto the hook stack
+  const prevTracker = currentComponent;
+  currentComponent = component;
+
+  try {
+    return child(childProps || emptyProps, context);
+  } finally {
+    // Pop ourselves off of the hook stack
+    currentComponent = prevTracker;
   }
+}
 
-  reset() {
-    // Used to generate sequential hook ids for this component
-    // the sequenial requirement is why hooks can't be in conditionals.
-    this.id = 0;
+function createTracker(component) {
+  // Used to generate sequential hook ids for this component
+  // the sequenial requirement is why hooks can't be in conditionals.
+  let nextId = 0;
 
-    // The list of hooks which have been instantiated for this component,
-    // this is keyed by hook id. Hook instances are used to determine if
-    // the hook value has changed, as well as to track cleanup requirements.
-    this.hookInstances = [];
+  // The list of hooks which have been instantiated for this component,
+  // this is keyed by hook id. Hook instances are used to determine if
+  // the hook value has changed, as well as to track cleanup requirements.
+  const hookInstances = [];
 
-    // We use state to track: hook state for the useState hook, and to
-    // track store state for the useSelector hook. Both mutate state,
-    // simply as a slight optimization. useState stores its state in
-    // this.state[hookId], and useSelector stores the Redux-like store
-    // state in this.state.storeState.
-    this.state = {};
+  // Used if useSelector is ever invoked. We have a single Redux-like
+  // store subscription per component, and we clean it up when we're done.
+  let unsubscribeFromStore = undefined;
 
-    // Used if useSelector is ever invoked. We have a single Redux-like
-    // store subscription per component, and we clean it up when we're done.
-    this.unsubscribeFromStore = undefined;
+  // Determines whether or not the component should update.
+  let shouldUpdate = true;
 
-    // Determines whether or not the component should update.
-    this.shouldUpdate = true;
+  // Setup the component's state so we can use it for useState and useSelector.
+  component.state = {};
 
-    // We pre-render in shouldComponentUpdate, in order to avoid v-dom diffs.
-    // This is the result of that render, and will be our return value from our
-    // render.
-    this.renderResult = undefined;
-  }
-
-  componentWillReceiveProps({ child }) {
-    if (child !== this.props.child) {
-      this.dispose();
-      this.reset();
-    }
-  }
-
-  dispose() {
-    // Clean our Redux subscription.
-    if (this.unsubscribeFromStore) {
-      this.unsubscribeFromStore();
-    }
-
-    // If any hooks have a dispose, we will clean them up.
-    this.hookInstances.forEach((hook) => {
-      return hook && hook.dispose && hook.dispose();
-    });
-  }
-
-  componentWillUnmount() {
-    this.dispose();
-  }
-
-  nextId() {
-    return this.id++;
-  }
-
-  /**
-   * Get the state of the Redux store (context.store.getState()). This
-   * has a side-effect of ensuring that we are subscribed to the store
-   * so that we re-render if one of our subscriptions changes, even if
-   * a parent component's shouldComponentUpdate returns false.
-   */
-  getStoreState() {
-    if (!this.unsubscribeFromStore) {
-      this.state.storeState = this.context.store.getState();
-      this.unsubscribeFromStore = this.context.store.subscribe(() => {
-        this.setState((s) => {
-          s.storeState = this.context.store.getState();
-          return s;
-        });
-      });
-    }
-
-    return this.state.storeState;
-  }
-
-  /**
-   * Get the Redux dispatch out of the context.
-   */
-  getDispatch() {
-    return this.context.store.dispatch;
-  }
-
-  /**
-   * Get the next hook in the hook sequence.
-   * @param {*} watchList An item which is used to determine if the hook needs to be re-initialized
-   */
-  getHook(watchList) {
-    const id = this.nextId();
-    let hook = this.hookInstances[id];
-    let value;
+  function nextHook(watchList) {
+    const id = nextId++;
+    let hook = hookInstances[id];
 
     if (hook && eq(hook.watchList, watchList)) {
       hook.isNew = false;
@@ -124,17 +62,119 @@ class HookComponent extends Component {
       id,
       isNew: true,
       watchList,
-      get value() {
-        return value;
-      },
-      set value(v) {
-        currentTracker.shouldUpdate = currentTracker.shouldUpdate || !eq(v, value);
-        value = v;
-      },
     };
 
-    this.hookInstances[id] = hook;
+    hookInstances[id] = hook;
     return hook;
+  }
+
+  const tracker = {
+    // We pre-render in shouldComponentUpdate, in order to avoid v-dom diffs.
+    // This is the result of that render, and will be our return value from our
+    // render.
+    renderResult: undefined,
+
+    /**
+     * Get the state of the Redux store (context.store.getState()). This
+     * has a side-effect of ensuring that we are subscribed to the store
+     * so that we re-render if one of our subscriptions changes, even if
+     * a parent component's shouldComponentUpdate returns false.
+     */
+    getStoreState() {
+      if (!unsubscribeFromStore) {
+        const store = component.context.store;
+        component.state.storeState = store.getState();
+        unsubscribeFromStore = store.subscribe(() => {
+          component.setState((s) => {
+            s.storeState = store.getState();
+            return s;
+          });
+        });
+      }
+
+      return component.state.storeState;
+    },
+
+    /**
+     * Get the next hook in the hook sequence.
+     * @param {*} watchList An item which is used to determine if the hook needs to be re-initialized
+     */
+    getHook(watchList, fn) {
+      const hook = nextHook(watchList);
+      const value = hook.value;
+      fn(hook);
+      shouldUpdate = shouldUpdate || !eq(hook.value, value);
+      return hook.value;
+    },
+
+    shouldComponentUpdate(nextProps, nextState, context) {
+      // We'll always update if the child props change.
+      shouldUpdate = !eq(component.props.childProps, nextProps.childProps);
+
+      // This ensures that any calls to useState will get the latest state.
+      component.state = nextState;
+
+      // When we begin a render pass, we need to reset our hook ids,
+      // so that the sequence is consistent between render calls.
+      nextId = 0;
+
+      // We cache the result of the render, so that we don't *double* render.
+      const renderResult = renderChild(component, nextProps, context);
+
+      // We only want to set this.renderResult if we are updating. Because otherwise, it's
+      // a boolean (bypassing the possibly expensive v-dom generation).
+      if (shouldUpdate) {
+        tracker.renderResult = renderResult;
+      }
+
+      return shouldUpdate;
+    },
+
+    dispose() {
+      // Clean our Redux subscription.
+      if (unsubscribeFromStore) {
+        unsubscribeFromStore();
+      }
+
+      // If any hooks have a dispose, we will clean them up.
+      hookInstances.forEach((hook) => {
+        return hook && hook.dispose && hook.dispose();
+      });
+    },
+  };
+
+  return tracker;
+}
+
+class HookComponent extends Component {
+  constructor(props, context) {
+    super(props, context);
+  }
+
+  dispose() {
+    if (this.tracker) {
+      this.tracker.dispose();
+    }
+    this.state = undefined;
+    this.tracker = undefined;
+  }
+
+  componentWillReceiveProps({ child }) {
+    // We're switching components, so we need to do a full reset...
+    if (child !== this.props.child) {
+      this.dispose();
+    }
+  }
+
+  componentWillUnmount() {
+    this.dispose();
+  }
+
+  getHook(watchList, fn) {
+    if (!this.tracker) {
+      this.tracker = createTracker(this);
+    }
+    return this.tracker.getHook(watchList, fn);
   }
 
   /**
@@ -144,43 +184,15 @@ class HookComponent extends Component {
    * the child.
    */
   shouldComponentUpdate(nextProps, nextState, context) {
-    // We'll always update if the child props change.
-    this.shouldUpdate = !eq(this.props.childProps, nextProps.childProps);
-
-    // This ensures that any calls to useState will get the latest state.
-    this.state = nextState;
-
-    // We cache the result of the render, so that we don't *double* render.
-    const renderResult = this.renderWith(nextProps, context);
-
-    // We only want to set this.renderResult if we are updating. Because otherwise, it's
-    // a boolean (bypassing the possibly expensive v-dom generation).
-    if (this.shouldUpdate) {
-      this.renderResult = renderResult;
+    if (!this.tracker) {
+      return true;
     }
 
-    return this.shouldUpdate;
+    return this.tracker.shouldComponentUpdate(nextProps, nextState, context);
   }
 
   render() {
-    return this.renderResult || this.renderWith(this.props, this.context);
-  }
-
-  renderWith({ childProps, child }, context) {
-    // Push ourselves onto the hook stack
-    const prevTracker = currentTracker;
-    currentTracker = this;
-
-    // When we begin a render pass, we need to reset our hook ids,
-    // so that the sequence is consistent between render calls.
-    this.id = 0;
-
-    try {
-      return child(childProps || emptyProps, context);
-    } finally {
-      // Pop ourselves off of the hook stack
-      currentTracker = prevTracker;
-    }
+    return this.tracker ? this.tracker.renderResult : renderChild(this, this.props, this.context);
   }
 }
 
@@ -197,7 +209,7 @@ export const createFragment = inferno.createFragment;
  * Here, we override inferno's createComponentVNode if the node being created
  * is a functional component. In that case we wrap it in our HookComponent.
  */
-export const createComponentVNode = (flags, type, props, key, ref) => {
+export function createComponentVNode(flags, type, props, key, ref) {
   if (type.prototype instanceof inferno.Component) {
     return inferno.createComponentVNode(flags, type, props, key, ref);
   }
@@ -209,7 +221,7 @@ export const createComponentVNode = (flags, type, props, key, ref) => {
     key,
     ref,
   );
-};
+}
 
 /**
  * Returns a stateful value, and a function to update it.
@@ -217,23 +229,22 @@ export const createComponentVNode = (flags, type, props, key, ref) => {
  * @returns {[T, (T|(T) => T)]} An array [state, setState]
  */
 export function useState(initialState) {
-  const hook = currentTracker.getHook();
+  return currentComponent.getHook(0, (hook) => {
+    if (hook.isNew) {
+      currentComponent.state[hook.id] =
+        typeof initialState === 'function' ? initialState() : initialState;
 
-  if (hook.isNew) {
-    currentTracker.state[hook.id] =
-      typeof initialState === 'function' ? initialState() : initialState;
+      const component = currentComponent;
+      hook.$setState = (setter) => {
+        return component.setState((s) => {
+          s[hook.id] = typeof setter === 'function' ? setter(s[hook.id]) : setter;
+          return s;
+        });
+      };
+    }
 
-    const component = currentTracker;
-    hook.$setState = (setter) => {
-      return component.setState((s) => {
-        s[hook.id] = typeof setter === 'function' ? setter(s[hook.id]) : setter;
-        return s;
-      });
-    };
-  }
-
-  hook.value = [currentTracker.state[hook.id], hook.$setState];
-  return hook.value;
+    hook.value = [currentComponent.state[hook.id], hook.$setState];
+  });
 }
 
 /**
@@ -242,11 +253,11 @@ export function useState(initialState) {
  * @param {*} watchList - The value or array of values to be watched. fn will be re-run if this changes.
  */
 export function useEffect(fn, watchList) {
-  const hook = currentTracker.getHook(watchList);
-
-  if (hook.isNew) {
-    hook.dispose = fn();
-  }
+  return currentComponent.getHook(watchList, (hook) => {
+    if (hook.isNew) {
+      hook.dispose = fn();
+    }
+  });
 }
 
 /**
@@ -256,13 +267,11 @@ export function useEffect(fn, watchList) {
  * @returns {T} the result of calling fn()
  */
 export function useMemo(fn, watchList) {
-  const hook = currentTracker.getHook(watchList);
-
-  if (hook.isNew) {
-    hook.value = fn();
-  }
-
-  return hook.value;
+  return currentComponent.getHook(watchList, (hook) => {
+    if (hook.isNew) {
+      hook.value = fn();
+    }
+  });
 }
 
 /**
@@ -274,15 +283,13 @@ export function useMemo(fn, watchList) {
  * @returns {T} the .value property of result of calling fn()
  */
 export function useDisposable(fn, watchList) {
-  const hook = currentTracker.getHook(watchList);
-
-  if (hook.isNew) {
-    const result = fn();
-    hook.value = result.value;
-    hook.dispose = result.dispose;
-  }
-
-  return hook.value;
+  return currentComponent.getHook(watchList, (hook) => {
+    if (hook.isNew) {
+      const result = fn();
+      hook.value = result.value;
+      hook.dispose = result.dispose;
+    }
+  });
 }
 
 /**
@@ -291,9 +298,9 @@ export function useDisposable(fn, watchList) {
  * @returns {TResult} the result of calling fn with the current Redux state.
  */
 export function useSelector(fn) {
-  const hook = currentTracker.getHook();
-  hook.value = fn(currentTracker.getStoreState());
-  return hook.value;
+  return currentComponent.getHook(0, (hook) => {
+    hook.value = fn(currentComponent.tracker.getStoreState());
+  });
 }
 
 /**
@@ -301,5 +308,5 @@ export function useSelector(fn) {
  * @returns {Dispatch} The Redux (or Redux-like store) dispatch function.
  */
 export function useDispatch() {
-  return currentTracker.getDispatch();
+  return currentComponent.context.store.dispatch;
 }

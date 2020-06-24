@@ -1,6 +1,6 @@
 {
   "name": "xferno",
-  "version": "0.0.5",
+  "version": "0.0.6",
   "description": "React hook-like capabilities for inferno.",
   "author": "Christopher Davies <github@christophilus.com>",
   "repository": {
@@ -14,7 +14,6 @@
     "dev": "rollup -c -w",
     "bench:raw": "rollup -c -w --in public/js/bench-raw.jsx",
     "bench:hooks": "rollup -c -w --in public/js/bench-hooks.jsx",
-    "bench:cache": "rollup -c -w --in public/js/bench-hooks-cache.jsx",
     "start": "sirv public --dev --host 0.0.0.0 --port 3000",
     "test": "jest"
   },
