@@ -236,8 +236,18 @@ export function useState(initialState) {
 
       const component = currentComponent;
       hook.$setState = (setter) => {
+        const s = component.state;
+        const state = s[hook.id];
+        const nextState = typeof setter === 'function' ? setter(s[hook.id]) : setter;
+        // Exit early if the state is unchanged. This means we don't
+        // really support state mutation.
+        if (state === nextState) {
+          return;
+        }
+        // We mutate here, purely as a micro optimization, probably not necessary, but
+        // the way we've written this, it's fine.
         return component.setState((s) => {
-          s[hook.id] = typeof setter === 'function' ? setter(s[hook.id]) : setter;
+          s[hook.id] = nextState;
           return s;
         });
       };
