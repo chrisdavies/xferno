@@ -7,7 +7,8 @@
     "url": "https://github.com/chrisdavies/xferno"
   },
   "license": "MIT",
-  "main": "dist/xferno.js",
+  "main": "dist/xferno.min.es.js",
+  "module": "dist/xferno.min.umd.js",
   "scripts": {
     "prepublishOnly": "npm run build",
     "build": "rollup -c",
