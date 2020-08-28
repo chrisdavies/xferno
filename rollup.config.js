@@ -44,8 +44,12 @@ export default {
   output: {
     name: 'xferno',
     sourcemap: true,
-    format: production ? 'umd' : 'iife',
-    file: production ? 'dist/xferno.js' : 'public/build/bundle.js',
+    format: production
+      ? [
+          { file: 'dist/xferno.min.es.js', format: 'es' },
+          { file: 'dist/xferno.min.umd.js', format: 'umd' }
+        ]
+      : [{ file: 'public/build/bundle.js', format: 'iife' }],
   },
   external: production ? ['inferno'] : [],
   plugins: [
