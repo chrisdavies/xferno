@@ -41,12 +41,12 @@ function runNpm(cmdName) {
 
 export default {
   input: getInputFile(),
-  output: {
-    name: 'xferno',
-    sourcemap: true,
-    format: production ? 'umd' : 'iife',
-    file: production ? 'dist/xferno.js' : 'public/build/bundle.js',
-  },
+  output: production
+    ? [
+        { file: 'dist/xferno.min.es.js', format: 'es' },
+        { name: 'xferno', file: 'dist/xferno.min.umd.js', format: 'umd' },
+      ]
+    : [{ file: 'public/build/bundle.js', format: 'iife' }],
   external: production ? ['inferno'] : [],
   plugins: [
     resolve({

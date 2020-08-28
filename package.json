@@ -1,13 +1,14 @@
 {
   "name": "xferno",
-  "version": "0.0.7",
+  "version": "0.0.8",
   "description": "React hook-like capabilities for inferno.",
   "author": "Christopher Davies <github@christophilus.com>",
   "repository": {
     "url": "https://github.com/chrisdavies/xferno"
   },
   "license": "MIT",
-  "main": "dist/xferno.js",
+  "module": "dist/xferno.min.es.js",
+  "main": "dist/xferno.min.umd.js",
   "scripts": {
     "prepublishOnly": "npm run build",
     "build": "rollup -c",
@@ -18,8 +19,10 @@
     "test": "jest"
   },
   "files": [
-    "dist/xferno.js",
-    "dist/xferno.js.map"
+    "dist/xferno.min.es.js",
+    "dist/xferno.min.es.js.map",
+    "dist/xferno.min.umd.js",
+    "dist/xferno.min.umd.js.map"
   ],
   "peerDependencies": {
     "inferno": "7.x"
